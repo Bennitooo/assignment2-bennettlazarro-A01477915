@@ -44,6 +44,8 @@ app.use(
   }),
 );
 
+app.set("view engine", "ejs");
+
 app.use(express.static("public"));
 
 app.post("/nosql-injection", async (req, res) => {
@@ -84,44 +86,15 @@ app.post("/nosql-injection", async (req, res) => {
 });
 
 // Routes
-
 app.get("/", (req, res) => {
-  if (req.session.authenticated) {
-    res.send(`
-      <h1>Hello, ${req.session.name}!</h1>
-      <form action="/members" method="get">
-        <button>Go to Members Area</button>
-      </form>
-      <form action="/logout" method="get">
-        <button>Logout</button>
-      </form>
-    `);
-  } else {
-    res.send(`
-      <form action="/signup" method="get">
-        <button>Sign Up</button>
-      </form>
-      <form action="/login" method="get">
-        <button>Log In</button>
-      </form>
-    `);
-  }
+  res.render("index", {
+    authenticated: req.session.authenticated,
+    name: req.session.name,
+  });
 });
 
 app.get("/signup", (req, res) => {
-  var html = `
-    create user
-    <form action='/submitUser' method='post'>
-    <input name='name' type='text' placeholder='name'>
-    <br>
-    <input name='email' type='email' placeholder='email'>
-    <br>
-    <input name='password' type='password' placeholder='password'>
-    <br>
-    <button>Submit</button>
-    </form>
-  `;
-  res.send(html);
+  res.render("signup");
 });
 
 app.post("/submitUser", async (req, res) => {
@@ -156,7 +129,12 @@ app.post("/submitUser", async (req, res) => {
   }
 
   var hashedPassword = await bcrypt.hash(password, saltRounds);
-  await userCollection.insertOne({ name, email, password: hashedPassword });
+  await userCollection.insertOne({
+    name,
+    email,
+    password: hashedPassword,
+    user_type: "user",
+  });
 
   req.session.authenticated = true;
   req.session.name = name;
@@ -166,17 +144,7 @@ app.post("/submitUser", async (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  var html = `
-    log in
-    <form action='/loggingin' method='post'>
-    <input name='email' type='text' placeholder='email'>
-    <br>
-    <input name='password' type='password' placeholder='password'>
-    <br>
-    <button>Submit</button>
-    </form>
-    `;
-  res.send(html);
+  res.render("login");
 });
 
 app.post("/loggingin", async (req, res) => {
@@ -192,7 +160,7 @@ app.post("/loggingin", async (req, res) => {
 
   const result = await userCollection
     .find({ email: email })
-    .project({ name: 1, email: 1, password: 1, _id: 1 })
+    .project({ name: 1, email: 1, password: 1, user_type: 1, _id: 1 })
     .toArray();
 
   if (result.length != 1) {
@@ -204,6 +172,7 @@ app.post("/loggingin", async (req, res) => {
     req.session.authenticated = true;
     req.session.name = result[0].name;
     req.session.email = email;
+    req.session.user_type = result[0].user_type;
     req.session.cookie.maxAge = expireTime;
     res.redirect("/members");
     return;
@@ -225,23 +194,39 @@ app.get("/members", (req, res) => {
     res.redirect("/login");
     return;
   }
+  res.render("patrick", {
+    name: req.session.name,
+  });
+});
 
-  const images = ["patrick1.png", "patrick2.png", "patrick3.png"];
-  const randomImage = images[Math.floor(Math.random() * images.length)];
+app.get("/admin", async (req, res) => {
+  if (!req.session.authenticated) {
+    res.redirect("/login");
+    return;
+  }
+  if (req.session.user_type !== "admin") {
+    res.status(403).render("403");
+    return;
+  }
+  const users = await userCollection.find().toArray();
+  res.render("admin", { users });
+});
 
-  res.send(`
-    <h1>Hello, ${req.session.name}.</h1>
-    <img src='/${randomImage}' style='width:300px;'>
-    <br><br>
-    <form action="/logout" method="get">
-      <button>Sign out</button>
-    </form>
-  `);
+app.get("/promoteUser", async (req, res) => {
+  const email = req.query.email;
+  await userCollection.updateOne({ email }, { $set: { user_type: "admin" } });
+  res.redirect("/admin");
+});
+
+app.get("/demoteUser", async (req, res) => {
+  const email = req.query.email;
+  await userCollection.updateOne({ email }, { $set: { user_type: "user" } });
+  res.redirect("/admin");
 });
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).send(`<h1>Page not found - 404</h1>`);
+  res.status(404).render("404");
 });
 
 // Start server
