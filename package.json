@@ -1,0 +1,26 @@
+{
+  "name": "assignment2-bennnettlazarro-a04177915",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bennitooo/assignment2-bennettlazarro-A01477915.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Bennitooo/assignment2-bennettlazarro-A01477915/issues"
+  },
+  "homepage": "https://github.com/Bennitooo/assignment2-bennettlazarro-A01477915#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0"
+  }
+}
