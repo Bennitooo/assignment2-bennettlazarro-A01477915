@@ -14,3 +14,4 @@ Self-graded Assignment 2 Checklist
 [x]  The members page has a responsive grid of 3 images.
 [x]  Your site is hosted on Render or other hosting site.
  
+50/50
